@@ -20,7 +20,8 @@ struct Expression
 {
     string expr_result;
     bool isLastPlus;
-    vector<int> multiplies;
+    int prevMultiplier = 1;
+    int lastMultiplier = 1;
     int previous = 0;
 };
 
@@ -28,7 +29,7 @@ template <Operation operation>
 bool getNextExpression(const Expression& expression, int num, Expression& newExpression) {
     newExpression = Expression();
     newExpression.expr_result = expression.expr_result + static_cast<char>(operation) + to_string(num);
-    long long mul = expression.multiplies.size() == 1?expression.multiplies.front():std::accumulate(expression.multiplies.begin(),expression.multiplies.end(), 1, std::multiplies<long long>());
+    long long mul = expression.prevMultiplier * expression.lastMultiplier;
     if (mul != static_cast<int>(mul)) {
         return false;
     }
@@ -41,7 +42,8 @@ bool getNextExpression(const Expression& expression, int num, Expression& newExp
     if (value != static_cast<int>(value)) return false;
     newExpression.previous = value;
     newExpression.isLastPlus = operation == Operation::PLUS;
-    newExpression.multiplies.push_back(num);
+    newExpression.prevMultiplier = 1;
+    newExpression.lastMultiplier = num;
     return true;
 }
 
@@ -49,19 +51,24 @@ template<>
 bool getNextExpression<Operation::MULTIPLY>(const Expression& expression, int num, Expression& newExpression) {
     newExpression = expression;
     newExpression.expr_result += static_cast<char>(Operation::MULTIPLY) + to_string(num);
-    newExpression.multiplies.push_back(num);
+    long long val = expression.prevMultiplier * expression.lastMultiplier;
+    if (val != static_cast<int>(val)) {
+        return false;
+    }
+    newExpression.prevMultiplier = static_cast<int>(val);
+    newExpression.lastMultiplier = num;
     return true;
 }
 
 template<>
 bool getNextExpression<Operation::NO_OPERATION>(const Expression& expression, int num, Expression& newExpression) {
 
-    if (expression.multiplies.empty() || expression.multiplies.back() == 0 ||          expression.multiplies.back() > maxNumber) {
+    if (expression.lastMultiplier == 0 ||  expression.lastMultiplier > maxNumber) {
         return false;
     }
     newExpression = expression;
     newExpression.expr_result += to_string(num);
-    newExpression.multiplies.back() = static_cast<int>(static_cast<long long>(newExpression.multiplies.back()) * 10 + num);
+    newExpression.lastMultiplier = newExpression.lastMultiplier * 10 + num;
     return true;
 }
 
@@ -72,7 +79,7 @@ class Solution {
     void addNextExpression(const Expression& expression, string::iterator number, int target, std::vector<string>& result) {
         if (number == numbers.end()) {
             int exprResult = expression.previous;
-            long long val = std::accumulate(expression.multiplies.begin(),expression.multiplies.end(), 1, std::multiplies<long long>());
+            long long val = expression.prevMultiplier * expression.lastMultiplier;
             if (val != static_cast<int>(val)) {
                 return;
             }
@@ -106,7 +113,7 @@ public:
         }
         vector<string> result;
         numbers = move(num);
-        Expression initialExpression = {string(1, numbers[0]),true, {numbers[0]  - '0'}, 0};
+        Expression initialExpression = {string(1, numbers[0]),true, 1, static_cast<int>(numbers[0] - '0'), 0};
         addNextExpression(initialExpression, numbers.begin() + 1, target, result);
         return result; 
     }
