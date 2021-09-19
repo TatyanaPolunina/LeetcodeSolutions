@@ -2,26 +2,44 @@
 #include <vector>
 #include <iterator>
 #include <iostream>
+#include <map>
 
 using namespace std;
 
 class Solution {
     using iter = std::string::iterator;
     using lettersIndices = vector<vector<int>>;
-    int getNumberOfWords(iter wordStart, iter wordEnd, int indexStart, lettersIndices& letters) {
-        const auto& letterIndices = letters[*wordStart];
+    vector<map<int, int> > savedCounts;
+    string t;
+    int getNumberOfWords(int tStart, int indexStart, lettersIndices& letters) {
+        if (savedCounts.size() - indexStart < t.size() - tStart) {
+            return 0;
+        }
+        if (indexStart >= 0) {
+            auto savedCountIter = savedCounts[indexStart].find(tStart);
+            if ( savedCountIter != savedCounts[indexStart].end()) {
+                return savedCountIter->second;
+            }
+        }
+        const auto& letterIndices = letters[t[tStart]];
         auto indexIter = upper_bound(letterIndices.begin(), letterIndices.end(), indexStart);
         if (indexIter == letterIndices.end()) {
+            if (indexStart >= 0) savedCounts[indexStart][tStart] = 0;
             return 0;
         }
 
-        if (wordStart + 1 == wordEnd) {
-            return distance(indexIter, letterIndices.end());
+        if (tStart + 1 == t.size()) {
+            int d = distance(indexIter, letterIndices.end());
+            savedCounts[indexStart][tStart] = d;
+            return d;
         }
+
+        
         int sum = 0;    
         for (auto i = indexIter; i !=  letterIndices.end(); ++i) {
-            sum += getNumberOfWords(wordStart + 1, wordEnd, *i, letters);
+            sum += getNumberOfWords(tStart + 1, *i, letters);
         }
+        if (indexStart >= 0 ) savedCounts[indexStart][tStart] = sum;
         return sum;
     }
     
@@ -31,7 +49,9 @@ public:
         for (int i = 0; i < s.size(); ++i) {
             lettersInS[s[i]].push_back(i);
         }
-        return getNumberOfWords(t.begin(), t.end(), -1, lettersInS);
+        this->t = std::move(t);
+        savedCounts.resize(s.size());
+        return getNumberOfWords(0, -1, lettersInS);
     }
 };
 
@@ -39,5 +59,6 @@ public:
 int main()
 {
     Solution s;
-    cout << s.numDistinct("adbdadeecadeadeccaeaabdabdbcdabddddabcaaadbabaaedeeddeaeebcdeabcaaaeeaeeabcddcebddebeebedaecccbdcbcedbdaeaedcdebeecdaaedaacadbdccabddaddacdddc", "bcddceeeebecbc");
+    cout << s.numDistinct("rabbbit",
+"rabbit");
 }
